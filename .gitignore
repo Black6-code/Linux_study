@@ -1,0 +1,28 @@
+# ===================== 内核模块编译产物 =====================
+# 这些文件由 `make` 自动生成，每次编译都会变，不需要纳入版本管理
+*.o
+*.ko
+*.mod.c
+*.mod.o
+*.order
+*.symvers
+*.cmd
+.*.cmd
+*.su
+*.tmp
+.tmp_versions/
+
+# ===================== 用户态 APP 可执行文件 =====================
+# 由 gcc 编译生成，源码（*.c）已提交，二进制不需要
+1_chrdevbase/chrdevbaseAPP
+2_led/ledAPP
+3_newchrled/ledAPP
+# 以后新增驱动时，把新的可执行文件名补到上面
+
+# ===================== 编辑器 / 系统临时文件 =====================
+.vscode/
+*.code-workspace
+*.swp
+*~
+.DS_Store
+Thumbs.db
