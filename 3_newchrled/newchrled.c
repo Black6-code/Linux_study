@@ -86,8 +86,7 @@ static ssize_t newchrled_write(struct file *file, const char __user *buf, size_t
 
 static int newchrled_release(struct inode *inode, struct file *filp)
 {
-    /* 提取文件私有数据 */
-    struct newchrled_dev *dev = (struct newchrled_dev *)filp->private_data;
+    
     return 0;
 }
 
