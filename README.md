@@ -19,7 +19,7 @@
 |------|------|------|
 | `1_chrdevbase/` | 字符设备基础：手动分配设备号 + `register_chrdev` | ✅ |
 | `2_led/` | LED 驱动：`ioremap` 寄存器映射、GPIO 输出控制 | ✅ |
-| `3_newchrled/` | 新字符设备驱动：`register_chrdev_region` / `cdev` / `alloc_chrdev_region` | 🚧 |
+| `3_newchrled/` | 新字符设备驱动：`alloc_chrdev_region` + `cdev` + `class_create` 自动建节点 | ✅ |
 
 ## 编译与部署
 
@@ -80,6 +80,37 @@ rmmod led.ko                  # 卸载驱动
 | `SW_PAD_GPIO1_IO03` | `0x020E02F4` | 电气属性（写 0x10B0） |
 | `GPIO1_GDIR` | `0x0209C004` | 方向寄存器（bit 3 = 1 → 输出） |
 | `GPIO1_DR` | `0x0209C000` | 数据寄存器（bit 3 = 0 → 亮，1 → 灭） |
+
+### 3_newchrled —— 新字符设备驱动
+
+相对 `2_led` 用 `register_chrdev()` 的"老框架"，这里改用**新框架**，注册一个字符设备被拆成三步：
+
+1. **申请设备号**：`alloc_chrdev_region()`（内核动态分配）或 `register_chrdev_region()`（指定号）
+2. **注册设备**：`cdev_init()` + `cdev_add()`
+3. **自动创建设备节点**：`class_create()` + `device_create()`（配合 udev/mdev）
+
+要点笔记：
+
+- **为什么要换新框架**：`register_chrdev()` 会一次性霸占整个主设备号下的所有次设备号，
+  而且**不会自动创建 `/dev` 节点**，必须手动 `mknod`。新框架把这几件事解耦了。
+- **设备号**：`MKDEV(major, minor)` 合成，`MAJOR()` / `MINOR()` 拆解。
+- **`struct cdev`** 是内核对字符设备的抽象，只有执行完 `cdev_add()` 设备才真正"生效"。
+- **错误回滚**：初始化过程用 `goto` **逐级回滚**（`fail_device_create` → `fail_class_create`
+  → `fail_cdev_init` → `fail_register_chrdev_region`），避免中途失败留下半初始化状态。
+  注意销毁顺序要**与创建顺序相反**，且 `device_destroy()` 必须在 `class_destroy()` 之前。
+- **`IS_ERR()` / `PTR_ERR()`**：`class_create()` / `device_create()` 失败时返回的是**错误指针**
+  （不是 `NULL`），必须用 `IS_ERR()` 判断、`PTR_ERR()` 取出错误码。
+- **测试方式**：不用再 `mknod`，`insmod newchrled.ko` 后 `/dev/newchrled` 会自动出现。
+
+```bash
+insmod newchrled.ko                  # 加载，dmesg 里会打印分配到的 major/minor
+./ledAPP /dev/newchrled 1            # 开灯
+./ledAPP /dev/newchrled 0            # 关灯
+rmmod newchrled                     # 卸载
+```
+
+> 注：`newchrled_release()` 里的局部变量 `dev` 目前没被使用，编译会有
+> `-Wunused-variable` 警告（不影响功能），后续可删掉或改用 `private_data`。
 
 ## 约定
 

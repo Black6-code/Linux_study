@@ -7,7 +7,7 @@
 #include <string.h>
 
 // ./ledAPP <filename>  <0:1> 
-// ./ledAPP  /dev/led  0  1     开灯 / 关灯
+// ./ledAPP  /dev/newchrled  0  1     开灯 / 关灯
 
 #define LED_ON  0
 #define LED_OFF 1
