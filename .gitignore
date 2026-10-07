@@ -26,3 +26,6 @@
 *~
 .DS_Store
 Thumbs.db
+
+# bear 生成的 IntelliSense 编译数据库（本地生成，勿提交）
+compile_commands.json
